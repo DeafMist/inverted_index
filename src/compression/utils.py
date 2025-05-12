@@ -1,10 +1,7 @@
 from .elias import EliasDeltaEncoder, EliasGammaEncoder
-from ..utils.logger import get_logger
-
-logger = get_logger(__name__)
 
 
-def encode_postings(postings: list[int]) -> bytes:
+def encode_postings(postings: list[int], method: str) -> bytes:
     if not postings:
         return b""
 
@@ -13,11 +10,16 @@ def encode_postings(postings: list[int]) -> bytes:
     for i in range(1, len(sorted_postings)):
         deltas.append(sorted_postings[i] - sorted_postings[i - 1])
 
-    return EliasGammaEncoder.encode(deltas)
+    if method == 'delta':
+        return EliasDeltaEncoder.encode(deltas)
+    return EliasGammaEncoder.encode(deltas)  # по умолчанию gamma
 
 
-def decode_postings(encoded: bytes) -> list[int]:
-    deltas = EliasGammaEncoder.decode(encoded)
+def decode_postings(encoded: bytes, method: str) -> list[int]:
+    if method == 'delta':
+        deltas = EliasDeltaEncoder.decode(encoded)
+    else:  # gamma по умолчанию
+        deltas = EliasGammaEncoder.decode(encoded)
 
     if not deltas:
         return []

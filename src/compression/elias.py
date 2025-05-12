@@ -7,17 +7,21 @@ logger = get_logger(__name__)
 
 
 class EliasGammaEncoder:
+    """Кодер Элиаса-Гамма для положительных целых чисел"""
+
     @staticmethod
     def encode_number(number: int) -> str:
+        """Кодирование одного числа в битовую строку"""
         if number <= 0:
-            logger.error(f"Elias Gamma encoding requires positive integers, got {number}")
-            raise CompressionError("Number must be positive for Elias Gamma encoding")
+            logger.error(f"Для кодирования Элиаса-Гамма требуются положительные числа, получено: {number}")
+            raise CompressionError("Число должно быть положительным для кодирования Элиаса-Гамма")
 
         n_bit = int(math.log2(number))
         return "0" * n_bit + bin(number)[2:]
 
     @staticmethod
     def encode(numbers: list[int]) -> bytes:
+        """Пакетное кодирование списка чисел в байты"""
         if not numbers:
             return b""
 
@@ -25,11 +29,11 @@ class EliasGammaEncoder:
         for n in numbers:
             bitstring += EliasGammaEncoder.encode_number(n)
 
-        # Pad with zeros to make length multiple of 8
+        # Выравнивание длины битовой строки до кратной 8
         padding = len(bitstring) % 8
         bitstring += "0" * padding
 
-        # Convert to bytes
+        # Преобразование битовой строки в байты
         byte_array = bytearray()
         for i in range(0, len(bitstring), 8):
             byte = bitstring[i: i + 8]
@@ -39,6 +43,7 @@ class EliasGammaEncoder:
 
     @staticmethod
     def decode(byte_data: bytes) -> list[int]:
+        """Декодирование байтов в список чисел"""
         if not byte_data:
             return []
 
@@ -49,11 +54,13 @@ class EliasGammaEncoder:
 
         zero_counter = 0
         while i < n:
+            # Подсчёт ведущих нулей
             if bitstring[i] == "0":
                 zero_counter += 1
                 i += 1
                 continue
 
+            # Извлечение закодированного числа
             number = int(bitstring[i: i + zero_counter + 1], 2)
             numbers.append(number)
 
@@ -64,18 +71,22 @@ class EliasGammaEncoder:
 
 
 class EliasDeltaEncoder:
+    """Кодер Элиаса-Дельта для положительных целых чисел"""
+
     @staticmethod
     def encode_number(number: int) -> str:
+        """Кодирование одного числа в битовую строку"""
         if number <= 0:
-            logger.error(f"Elias Delta encoding requires positive integers, got {number}")
-            raise CompressionError("Number must be positive for Elias Delta encoding")
+            logger.error(f"Для кодирования Элиаса-Дельта требуются положительные числа, получено: {number}")
+            raise CompressionError("Число должно быть положительным для кодирования Элиаса-Дельта")
 
         n = int(math.log2(number)) + 1
         gamma_n_code = EliasGammaEncoder.encode_number(n)
-        return gamma_n_code + bin(number)[3:]
+        return gamma_n_code + bin(number)[3:]  # Отрезаем ведущую 1
 
     @staticmethod
     def encode(numbers: list[int]) -> bytes:
+        """Пакетное кодирование списка чисел в байты"""
         if not numbers:
             return b""
 
@@ -83,11 +94,11 @@ class EliasDeltaEncoder:
         for n in numbers:
             bitstring += EliasDeltaEncoder.encode_number(n)
 
-        # Pad with zeros to make length multiple of 8
+        # Выравнивание длины битовой строки до кратной 8
         padding = len(bitstring) % 8
         bitstring += "0" * padding
 
-        # Convert to bytes
+        # Преобразование битовой строки в байты
         byte_array = bytearray()
         for i in range(0, len(bitstring), 8):
             byte = bitstring[i: i + 8]
@@ -97,6 +108,7 @@ class EliasDeltaEncoder:
 
     @staticmethod
     def decode(byte_data: bytes) -> list[int]:
+        """Декодирование байтов в список чисел"""
         if not byte_data:
             return []
 
@@ -107,14 +119,17 @@ class EliasDeltaEncoder:
 
         zero_counter = 0
         while i < n:
+            # Определение длины кода длины
             if bitstring[i] == "0":
                 zero_counter += 1
                 i += 1
                 continue
 
+            # Декодирование длины числа
             bit_count = int(bitstring[i: i + zero_counter + 1], 2)
             i += zero_counter + 1
 
+            # Восстановление исходного числа
             number = int("1" + bitstring[i: i + bit_count - 1], 2)
             numbers.append(number)
 

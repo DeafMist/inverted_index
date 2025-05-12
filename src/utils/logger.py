@@ -3,7 +3,7 @@ import sys
 
 
 def get_logger(name: str, log_level: int = logging.INFO) -> logging.Logger:
-    """Configure and return a logger with the given name"""
+    """Конфигурирует и возвращает logger с указанным именем"""
     logger = logging.getLogger(name)
     logger.setLevel(log_level)
 

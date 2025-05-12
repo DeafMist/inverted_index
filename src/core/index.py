@@ -10,7 +10,6 @@ from ..compression.utils import encode_postings, decode_postings
 from ..utils.exceptions import IndexationError
 from ..utils.logger import get_logger
 
-
 nltk.download('punkt_tab')
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
@@ -19,18 +18,19 @@ logger = get_logger(__name__)
 
 
 class InvertedIndex:
-    def __init__(self, use_compression: bool = True):
-        self.index: dict[str, bytes] = {}  # term -> compressed postings
-        self.documents: dict[int, Document] = {}
-        self.use_compression = use_compression
-        self.next_doc_id = 0
-        self.term_frequencies: dict[str, dict[int, int]] = defaultdict(dict)
+    """Класс обратного индекса для поисковой системы"""
+
+    def __init__(self, compression_method: str = 'none'):
+        self.index: dict[str, bytes] = {}  # Термин -> сжатый список ID
+        self.documents: dict[int, Document] = {}  # Хранилище документов
+        self.compression_method = compression_method  # Метод сжатия
+        self.term_frequencies: dict[str, dict[int, int]] = defaultdict(dict)  # Частоты терминов
 
     def add_document(self, document: Document) -> None:
-        """Add a document to the index"""
+        """Добавление документа в индекс"""
         try:
             if document.doc_id in self.documents:
-                logger.warning(f"Document with ID {document.doc_id} already exists. Overwriting.")
+                logger.warning(f"Документ с ID {document.doc_id} уже существует. Перезапись.")
 
             self.documents[document.doc_id] = document
             terms = self._process_text(document.text)
@@ -44,39 +44,39 @@ class InvertedIndex:
                         current.append(document.doc_id)
                         self.index[term] = self._encode_postings(sorted(current))
 
-                # Update term frequency
-                self.term_frequencies[term][document.doc_id] =\
+                # Обновление частоты термина
+                self.term_frequencies[term][document.doc_id] = \
                     self.term_frequencies[term].get(document.doc_id, 0) + 1
 
         except Exception as e:
-            logger.error(f"Failed to add document {document.doc_id}: {str(e)}")
-            raise IndexationError(f"Failed to add document: {str(e)}")
+            logger.error(f"Ошибка добавления документа {document.doc_id}: {str(e)}")
+            raise IndexationError(f"Ошибка индексации: {str(e)}")
 
     def search(self, query: str) -> list[Document]:
-        """Search for documents containing all terms in the query"""
+        """Поиск документов, содержащих все термины из запроса"""
         try:
             terms = self._process_text(query)
             if not terms:
                 return []
 
-            # Get postings for each term
+            # Получение списков документов для каждого термина
             postings_sets = []
             for term in terms:
                 if term not in self.index:
-                    return []  # At least one term not found
+                    return []  # Если хотя бы один термин не найден
                 try:
                     postings = self._decode_postings(self.index[term])
                     postings_sets.append(set(postings))
                 except Exception as e:
-                    logger.error(f"Failed to decode postings for term '{term}': {str(e)}")
+                    logger.error(f"Ошибка декодирования для термина '{term}': {str(e)}")
                     return []
 
-            # Find intersection of all postings sets
+            # Поиск пересечения всех списков
             result_ids = set(postings_sets[0])
             for s in postings_sets[1:]:
                 result_ids.intersection_update(s)
 
-            # Sort by term frequency (simple ranking)
+            # Сортировка по частоте терминов (простой ранжинг)
             ranked_ids = sorted(
                 result_ids,
                 key=lambda doc_id: sum(
@@ -89,11 +89,12 @@ class InvertedIndex:
             return [self.documents[doc_id] for doc_id in ranked_ids]
 
         except Exception as e:
-            logger.error(f"Search failed for query '{query}': {str(e)}")
+            logger.error(f"Ошибка поиска по запросу '{query}': {str(e)}")
             return []
 
-    def _process_text(self, text: str) -> list[str]:
-        """Improved text processing with proper tokenization and normalization"""
+    @staticmethod
+    def _process_text(text: str) -> list[str]:
+        """Обработка текста: токенизация, нормализация и стемминг"""
         if not isinstance(text, str):
             return []
 
@@ -101,10 +102,10 @@ class InvertedIndex:
         if not text:
             return []
 
-        # Tokenize
+        # Токенизация
         tokens = word_tokenize(text)
 
-        # Remove stopwords and short tokens
+        # Удаление стоп-слов и коротких токенов
         stop_words = set(stopwords.words('russian') + stopwords.words('english'))
         tokens = [
             token for token in tokens
@@ -113,18 +114,18 @@ class InvertedIndex:
                and token not in stop_words
         ]
 
-        # Stemming
+        # Стемминг для русского языка
         stemmer = SnowballStemmer('russian')
         return [stemmer.stem(token) for token in tokens]
 
     def _encode_postings(self, postings: list[int]) -> bytes:
-        """Encode postings list using the configured compression method"""
-        if not self.use_compression:
+        """Кодирование списка ID документов с выбранным методом"""
+        if self.compression_method == 'none':
             return ",".join(map(str, postings)).encode('utf-8')
-        return encode_postings(postings)
+        return encode_postings(postings, self.compression_method)
 
     def _decode_postings(self, encoded: bytes) -> list[int]:
-        """Decode postings list using the configured compression method"""
-        if not self.use_compression:
+        """Декодирование списка ID документов"""
+        if self.compression_method == 'none':
             return [int(doc_id) for doc_id in encoded.decode('utf-8').split(",")]
-        return decode_postings(encoded)
+        return decode_postings(encoded, self.compression_method)

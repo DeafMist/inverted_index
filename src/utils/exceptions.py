@@ -1,7 +1,7 @@
 class IndexationError(Exception):
-    """Base exception for index-related errors"""
+    """Базовое исключение при проблемах индексации"""
     pass
 
 class CompressionError(Exception):
-    """Exception for compression-related errors"""
+    """Базовое исключение при проблемах сжатия"""
     pass
