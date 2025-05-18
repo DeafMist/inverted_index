@@ -43,3 +43,9 @@ python searcher.py --index index.json --query "Ректор СПбГУ"
 #### Аргументы:
 * `--index` - файл с сохранённым индексом
 * `--query` - поисковый запрос
+
+### Тесты
+
+```bash
+pytest -v
+```
