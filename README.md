@@ -29,15 +29,17 @@ python indexer.py --input urls.txt --output index.json --compression gamma
 python indexer.py --input urls.txt --output index.json --compression delta
 ```
 
+#### Аргументы:
+* `--input` - файл со списком URL для индексации
+* `--output` - файл для сохранения индекса
+* `--compression` - использовать сжатие (gamma, delta)
+
 ### Поиск в индексе
 
 ```bash
 python searcher.py --index index.json --query "Ректор СПбГУ"
 ```
 
-Аргументы:
-* --input - файл со списком URL для индексации
-* --output - файл для сохранения индекса
-* --compression - использовать сжатие (gamma, delta)
-* --index - файл с сохранённым индексом
-* --query - поисковый запрос
+#### Аргументы:
+* `--index` - файл с сохранённым индексом
+* `--query` - поисковый запрос
