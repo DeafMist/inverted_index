@@ -30,8 +30,9 @@ class EliasGammaEncoder:
             bitstring += EliasGammaEncoder.encode_number(n)
 
         # Выравнивание длины битовой строки до кратной 8
-        padding = len(bitstring) % 8
-        bitstring += "0" * padding
+        padding = 8 - len(bitstring) % 8
+        if padding != 8:
+            bitstring += "0" * padding
 
         # Преобразование битовой строки в байты
         byte_array = bytearray()
@@ -95,8 +96,9 @@ class EliasDeltaEncoder:
             bitstring += EliasDeltaEncoder.encode_number(n)
 
         # Выравнивание длины битовой строки до кратной 8
-        padding = len(bitstring) % 8
-        bitstring += "0" * padding
+        padding = 8 - len(bitstring) % 8
+        if padding != 8:
+            bitstring += "0" * padding
 
         # Преобразование битовой строки в байты
         byte_array = bytearray()
